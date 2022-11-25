@@ -1,0 +1,30 @@
+#build node mode
+FROM node:lts-alpine as builder
+
+WORKDIR /app
+
+COPY ./entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+COPY ./srcs/*.json ./
+
+RUN npm install
+
+#RUN npm run build && npm prune --omit=dev
+RUN npm run build
+
+COPY ./srcs/ ./
+
+#start node dev mode
+FROM node:lts-alpine as development
+
+WORKDIR /app
+
+COPY --from=builder /app ./
+COPY --from=builder /entrypoint.sh /entrypoint.sh
+
+WORKDIR /app/src
+
+RUN npx prisma generate
+
+CMD ["sh", "/entrypoint.sh"]

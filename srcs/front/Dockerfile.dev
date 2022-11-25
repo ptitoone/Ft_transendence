@@ -1,0 +1,19 @@
+#builder mode
+FROM node:lts-alpine as builder 
+
+WORKDIR /app
+
+COPY ./srcs/package*.json ./
+
+RUN npm install
+
+COPY ./srcs/ ./
+
+#development mode
+FROM node:lts-alpine as development
+
+WORKDIR /app
+
+COPY --from=builder /app ./
+
+CMD ["npm", "run", "start"]

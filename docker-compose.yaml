@@ -1,0 +1,83 @@
+services:
+  backend:
+    build:
+      context: ./srcs/back
+      dockerfile: ${FILE}
+      target: ${STAGE}
+    container_name: backend
+    depends_on:
+      - frontend
+      - postgres
+    env_file:
+      - .back.env
+    environment:
+      - STAGE=${STAGE}
+    expose:
+      - 3030
+      - 5555
+      - 443
+    ports:
+      - 5555:5555
+      - 3030:3030
+    image: back_image
+    init: true
+    networks:
+      - api-network
+      - data-network
+    restart: always
+    volumes:
+      - ./srcs/back/srcs/src:/app/src
+      - /app/node_modules
+
+  frontend:
+    build:
+      context: ./srcs/front
+      dockerfile: ${FILE}
+      target: ${STAGE}
+    container_name: frontend
+    depends_on:
+      - reverse_proxy
+    expose:
+      - 3000
+    image: front_image
+    init: true
+    networks:
+      - api-network
+    restart: always
+    volumes:
+      - ./srcs/front/srcs/src:/app/src
+      - /app/node_modules
+
+  postgres:
+    container_name: postgres
+    env_file:
+      - .db.env
+    image: postgres:alpine
+    networks:
+      - data-network
+    restart: always
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  reverse_proxy:
+    container_name: reverse_proxy
+    build: ./srcs/reverse_proxy
+    image: reverse_proxy_image
+    networks:
+      - proxy-network
+      - api-network
+    ports:
+      - 80:80
+      - 443:443
+    restart: always
+    volumes:
+      - ./srcs/reverse_proxy/nginx.conf:/etc/nginx/nginx.conf
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+
+networks:
+  api-network:
+  data-network:
+  proxy-network:
+
+volumes:
+  pgdata:

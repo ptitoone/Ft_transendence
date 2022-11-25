@@ -1,0 +1,95 @@
+generator client {
+    provider        = "prisma-client-js"
+    previewFeatures = ["fieldReference"]
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+enum ChannelType {
+    PUBLIC
+    PRIVATE
+}
+
+enum RequestType {
+    FRIEND
+    GAME
+    MUTE
+    BAN
+}
+
+model Message {
+    id         Int      @id(map: "PK_ba01f0a3e0123651915008bc578") @default(autoincrement())
+    senderId   Int
+    receiverId Int?
+    chanId     Int?
+    user       User     @relation("Message", fields: [senderId], references: [id])
+    content    String   @db.VarChar
+    created_at DateTime @default(now()) @db.Timestamp(6)
+    updated_at DateTime @default(now()) @db.Timestamp(6)
+}
+
+model Channel {
+    id         Int         @id(map: "PK_590f33ee6ee7d76437acf362e39") @default(autoincrement())
+    type       ChannelType
+    owner      Int
+    name       String      @unique() @db.VarChar
+    password   String?     @db.VarChar
+    users      User[]
+    admins     User[]      @relation("Admins")
+    muteds     Request[]   @relation("muteds")
+    banneds    Request[]   @relation("banneds")
+    created_at DateTime    @default(now()) @db.Timestamp(6)
+    updated_at DateTime    @default(now()) @db.Timestamp(6)
+}
+
+model Game {
+    id          Int      @id(map: "PK_352a30652cd352f552fef73dec5") @default(autoincrement())
+    user1_id    Int
+    user2_id    Int
+    winner_id   Int      @default(-1)
+    loser_id    Int      @default(-1)
+    user1_score Int      @default(0)
+    user2_score Int      @default(0)
+    created_at  DateTime @default(now()) @db.Timestamp(6)
+    updated_at  DateTime @default(now()) @db.Timestamp(6)
+}
+
+model Request {
+    id         Int         @id(map: "PK_beb994737756c0f18a1c1f8669c") @default(autoincrement())
+    type       RequestType
+    senderId   Int?
+    chanBanId  Int?
+    chanMuteId Int?
+    receiverId Int
+    receiver   User        @relation("Receiver", fields: [receiverId], references: [id])
+    sender     User?       @relation("Sender", fields: [senderId], references: [id])
+    chanBan    Channel?    @relation("banneds", fields: [chanBanId], references: [id])
+    chanMute   Channel?    @relation("muteds", fields: [chanMuteId], references: [id])
+    created_at DateTime    @default(now()) @db.Timestamp(6)
+    updated_at DateTime    @default(now()) @db.Timestamp(6)
+}
+
+model User {
+    id         Int       @id(map: "PK_cace4a159ff9f2512dd42373760") @unique() @default(autoincrement())
+    username   String    @unique(map: "UQ_4349c547f526325128336a08894") @db.VarChar
+    login42    String    @unique(map: "UQ_4349c547f526325128336a49880") @db.VarChar
+    avatar     String    @default("")
+    status     String    @default("offline")
+    status2FA  Boolean   @default(false)
+    secret2FA  String    @unique() @default("") @db.VarChar
+    elo        Int       @default(500)
+    channels   Channel[]
+    friendInt  User[]    @relation("Friend")
+    friendExt  User[]    @relation("Friend")
+    blockedInt User[]    @relation("Blocked")
+    blockedExt User[]    @relation("Blocked")
+    isAdmin    Channel[] @relation("Admins")
+    sent       Request[] @relation("Sender")
+    received   Request[] @relation("Receiver")
+    messages   Message[] @relation("Message")
+    created_at DateTime  @default(now()) @db.Timestamp(6)
+    updated_at DateTime  @default(now()) @db.Timestamp(6)
+}
